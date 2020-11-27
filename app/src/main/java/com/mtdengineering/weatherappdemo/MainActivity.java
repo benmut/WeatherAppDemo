@@ -7,9 +7,12 @@ import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.util.Log;
 
 public class MainActivity extends AppCompatActivity
@@ -17,6 +20,10 @@ public class MainActivity extends AppCompatActivity
     private final String TAG = getClass().getSimpleName();
 
     private static final int LOCATION_REQUEST_CODE = 101;
+    public static final String RECEIVER_KEY = "receiver";
+
+    private double latitude;
+    private double longitude;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -30,6 +37,24 @@ public class MainActivity extends AppCompatActivity
         }
 
         Log.d(TAG, "onCreate");
+    }
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+
+        startLocService();
+        Log.d(TAG, "onResume");
+    }
+
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+
+        stopService(new Intent(this, LocationService.class));
+        Log.d(TAG, "onPause");
     }
 
     private void requestLocationPermission()
@@ -93,5 +118,34 @@ public class MainActivity extends AppCompatActivity
     private boolean needRuntimePermission()
     {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+    }
+
+    private void startLocService()
+    {
+        MyResultReceiver myResultReceiver = new MyResultReceiver(null);
+
+        Intent intent = new Intent(this, LocationService.class);
+        intent.putExtra(RECEIVER_KEY, myResultReceiver);
+        startService(intent);
+    }
+
+    private class MyResultReceiver extends ResultReceiver
+    {
+        public MyResultReceiver(Handler handler)
+        {
+            super(handler);
+        }
+
+        @Override
+        protected void onReceiveResult(int resultCode, Bundle resultData)
+        {
+            super.onReceiveResult(resultCode, resultData);
+
+            if(resultCode == LocationService.RESULT_CODE && resultData != null)
+            {
+                latitude = resultData.getDouble(LocationService.LAT_KEY);
+                longitude = resultData.getDouble(LocationService.LNG_KEY);
+            }
+        }
     }
 }
