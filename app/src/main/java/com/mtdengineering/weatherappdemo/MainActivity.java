@@ -9,11 +9,14 @@ import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.util.Log;
+
+import static com.mtdengineering.weatherappdemo.utils.AppUtil.isNetworkProviderAvailable;
 
 public class MainActivity extends AppCompatActivity
 {
@@ -21,6 +24,8 @@ public class MainActivity extends AppCompatActivity
 
     private static final int LOCATION_REQUEST_CODE = 101;
     public static final String RECEIVER_KEY = "receiver";
+
+    LocationManager lm;
 
     private double latitude;
     private double longitude;
@@ -30,6 +35,8 @@ public class MainActivity extends AppCompatActivity
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        lm = (LocationManager) getSystemService(LOCATION_SERVICE);
 
         if(needRuntimePermission())
         {
@@ -122,11 +129,14 @@ public class MainActivity extends AppCompatActivity
 
     private void startLocService()
     {
-        MyResultReceiver myResultReceiver = new MyResultReceiver(null);
+        if(isNetworkProviderAvailable(this, lm))
+        {
+            MyResultReceiver myResultReceiver = new MyResultReceiver(null);
 
-        Intent intent = new Intent(this, LocationService.class);
-        intent.putExtra(RECEIVER_KEY, myResultReceiver);
-        startService(intent);
+            Intent intent = new Intent(this, LocationService.class);
+            intent.putExtra(RECEIVER_KEY, myResultReceiver);
+            startService(intent);
+        }
     }
 
     private class MyResultReceiver extends ResultReceiver
