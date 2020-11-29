@@ -12,10 +12,12 @@ import androidx.fragment.app.DialogFragment;
 public class AlertUserDialog extends DialogFragment implements DialogInterface.OnClickListener
 {
     private String message;
+    private String settingsActivityAction;
 
-    public AlertUserDialog(String message)
+    public AlertUserDialog(String message, String action)
     {
         this.message = message != null? message : "Message not set!";
+        this.settingsActivityAction = action;
     }
 
     @NonNull
