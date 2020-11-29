@@ -13,4 +13,10 @@
         android:title="@string/exit_string"
         android:orderInCategory="2"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_start"
+        android:title="@string/start_string"
+        android:orderInCategory="3"
+        app:showAsAction="never" />
 </menu>

@@ -126,6 +126,9 @@ public class MainActivity extends AppCompatActivity
             case R.id.action_exit:
                 finish();
                 return true;
+            case R.id.action_start:
+                startLocService();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }

@@ -2,6 +2,7 @@ package com.mtdengineering.weatherappdemo.utils;
 
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -41,6 +42,8 @@ public class AlertUserDialog extends DialogFragment implements DialogInterface.O
         switch(i)
         {
             case Dialog.BUTTON_POSITIVE:
+                if(settingsActivityAction != null)
+                    startActivity(new Intent(settingsActivityAction));
                 break;
             case Dialog.BUTTON_NEGATIVE:
                 // Do nothing

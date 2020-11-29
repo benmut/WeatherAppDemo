@@ -4,4 +4,5 @@
     <string name="update_string">Update</string>
     <string name="exit_string">Exit</string>
     <string name="no_data_string">No data!</string>
+    <string name="start_string">Start</string>
 </resources>
