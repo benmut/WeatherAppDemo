@@ -20,6 +20,7 @@ public class LocationService extends Service
     private final String TAG = getClass().getSimpleName();
 
     public static final int RESULT_CODE = 10;
+    public static final int RESULT_CODE_FAILED = 15;
     public static final String LAT_KEY = "lat_key";
     public static final String LNG_KEY = "lng_key";
 
@@ -101,11 +102,12 @@ public class LocationService extends Service
         @Override
         public void onLocationChanged(Location location)
         {
-            String provider = location.getProvider();
-            double lat = location.getLatitude();
-            double lng = location.getLongitude();
-            float accuracy = location.getAccuracy();
-            long time = location.getTime();
+            String provider = location != null ? location.getProvider() : " - ";
+            double lat = location != null ? location.getLatitude() : 0.0d;
+            double lng = location != null ? location.getLongitude() : 0.0d;
+            float accuracy = location != null ? location.getAccuracy() : 0.0f;
+            long time = location != null ? location.getTime() : 0L;
+            int resultCode = location != null ? RESULT_CODE: RESULT_CODE_FAILED;
 
             StringBuilder sb = new StringBuilder(40);
             sb.append(provider).append(" | ");
@@ -117,7 +119,7 @@ public class LocationService extends Service
             bundle.putDouble(LAT_KEY, lat);
             bundle.putDouble(LNG_KEY, lng);
 
-            resultReceiver.send(RESULT_CODE, bundle);
+            resultReceiver.send(resultCode, bundle);
 
             Log.d(TAG, "Location: " + sb.toString());
         }
