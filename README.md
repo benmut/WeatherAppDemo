@@ -33,17 +33,4 @@ On App launch
   The update button in the App bar is used to manually update the weather information on the screen.  
   The start button restarts the App. This is used after a location or network error.  
   The exit button in the App bar closes the App.  
-  
-  # Improvement
-  - Accommodate devices with API level < 23 
-  - A cleaner Architecture
-  - Using a DI library instead of manual DI
-  - Using good library library to connect to remote service
-  - Better Layout design
-  
-  # Note
-  My first implementation used to have the weather information updated every time a new location is found and the update button was not needed.  
-  This current implementation only updates information on the screen on the user click of the update button as required.  
-  
-  
-  
+ 
