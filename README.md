@@ -4,6 +4,10 @@ This is a simple demo App that displays the weather information based on the use
 # Built with
 - Android Studio
 - Java
+- Retrofit
+- Dagger2
+- MVVM design pattern
+- LiveData & RxJava
 
 # Tested with
 Emulator Pixel API 27
