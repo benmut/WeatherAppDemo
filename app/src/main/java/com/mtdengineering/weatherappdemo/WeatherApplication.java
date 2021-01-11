@@ -2,14 +2,18 @@ package com.mtdengineering.weatherappdemo;
 
 import android.app.Application;
 
-import com.mtdengineering.weatherappdemo.repositories.implementation.WeatherRepository;
+import com.mtdengineering.weatherappdemo.dagger.AppComponent;
+import com.mtdengineering.weatherappdemo.dagger.DaggerAppComponent;
 
 public class WeatherApplication extends Application
 {
-    public Container container = new Container();
+    public AppComponent appComponent;
 
-    class Container
+    @Override
+    public void onCreate()
     {
-        WeatherRepository weatherRepository = new WeatherRepository();
+        super.onCreate();
+
+        appComponent = DaggerAppComponent.create();
     }
 }

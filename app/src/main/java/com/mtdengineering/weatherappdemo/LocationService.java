@@ -15,6 +15,8 @@ import android.os.Looper;
 import android.os.ResultReceiver;
 import android.util.Log;
 
+import com.mtdengineering.weatherappdemo.ui.MainActivity;
+
 public class LocationService extends Service
 {
     private final String TAG = getClass().getSimpleName();

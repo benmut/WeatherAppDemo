@@ -1,9 +1,11 @@
-package com.mtdengineering.weatherappdemo;
+package com.mtdengineering.weatherappdemo.ui;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.lifecycle.ViewModelProvider;
+
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -22,10 +24,18 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.mtdengineering.weatherappdemo.LocationService;
+import com.mtdengineering.weatherappdemo.R;
+import com.mtdengineering.weatherappdemo.WeatherApplication;
+import com.mtdengineering.weatherappdemo.dagger.AppComponent;
+import com.mtdengineering.weatherappdemo.dagger.ViewModelProviderFactory;
 import com.mtdengineering.weatherappdemo.models.WeatherInfo;
-import com.mtdengineering.weatherappdemo.repositories.interfaces.IWeatherRepository;
+import com.mtdengineering.weatherappdemo.utils.Constant;
+import com.mtdengineering.weatherappdemo.viewmodels.MainViewModel;
 
 import java.io.IOException;
+
+import javax.inject.Inject;
 
 import static com.mtdengineering.weatherappdemo.utils.AppUtil.convertKelvinToCelsius;
 import static com.mtdengineering.weatherappdemo.utils.AppUtil.isNetworkProviderAvailable;
@@ -44,11 +54,14 @@ public class MainActivity extends AppCompatActivity
     String latitude;
     String longitude;
 
-    IWeatherRepository iWeatherRepository;
-
     TextView tvName, tvDescription, tvTemperature, tvPressure, tvHumidity, tvVisibility, tv_no_data;
     RelativeLayout rlView;
     LinearLayout llProgressBar;
+
+    @Inject
+    ViewModelProviderFactory viewModelProviderFactory;
+
+    MainViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -56,7 +69,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        containerGetInstances();
+        injectFields();
         setViews();
 
         lm = (LocationManager) getSystemService(LOCATION_SERVICE);
@@ -66,13 +79,16 @@ public class MainActivity extends AppCompatActivity
             requestLocationPermission();
         }
 
+        viewModel = new ViewModelProvider(this, viewModelProviderFactory).get(MainViewModel.class);
+        subscribeObservers();
+
         Log.d(TAG, "onCreate");
     }
 
-    private void containerGetInstances()
+    private void injectFields()
     {
-        WeatherApplication.Container container = ((WeatherApplication) getApplication()).container;
-        iWeatherRepository = container.weatherRepository;
+        AppComponent appComponent = ((WeatherApplication) getApplication()).appComponent;
+        appComponent.injectActivity(this);
     }
 
     private void setViews()
@@ -87,6 +103,49 @@ public class MainActivity extends AppCompatActivity
         tvHumidity = findViewById(R.id.tv_humidity);
         tvVisibility = findViewById(R.id.tv_visibility);
         tv_no_data = findViewById(R.id.tv_no_data);
+    }
+
+    private void subscribeObservers()
+    {
+        viewModel.getWeatherInfo().observe(this, weatherInfo ->
+        {
+            llProgressBar.setVisibility(View.GONE);
+
+            if(weatherInfo != null)
+            {
+                tv_no_data.setVisibility(View.GONE);
+                rlView.setVisibility(View.VISIBLE);
+
+                tvName.setText(weatherInfo.getName());
+                tvDescription.setText(weatherInfo.getWeather().get(0).getDescription());
+
+                String temperature = convertKelvinToCelsius(String.valueOf(weatherInfo.getMain().getTemperature()));
+                tvTemperature.setText(temperature);
+
+                tvPressure.setText(weatherInfo.getMain().getPressure() + " hPa");
+                tvHumidity.setText(weatherInfo.getMain().getHumidity() + "%");
+
+                String visibility = String.valueOf(Float.valueOf(weatherInfo.getVisibility()) / 1000);
+                tvVisibility.setText(visibility + " Km");
+            }
+            else
+            {
+                tv_no_data.setVisibility(View.VISIBLE);
+                rlView.setVisibility(View.INVISIBLE);
+                showUserAlert(MainActivity.this, "Error!", "An error occurred while retrieving weather information. Please try again later");
+            }
+        });
+
+        viewModel.getError().observe(this, error ->
+        {
+            llProgressBar.setVisibility(View.GONE);
+
+            tv_no_data.setVisibility(View.VISIBLE);
+            rlView.setVisibility(View.INVISIBLE);
+
+            String errorMsg = error; // Not to be displayed to the User but used for debugging
+            showUserAlert(MainActivity.this, "Error!", "An error occurred while retrieving weather information. Please try again later");
+        });
     }
 
     @Override
@@ -120,8 +179,7 @@ public class MainActivity extends AppCompatActivity
         switch(item.getItemId())
         {
             case R.id.action_update:
-                getWeatherInfoAsync(latitude, longitude);
-                //startLocService();
+                viewModel.getWeatherInfo(latitude, longitude, Constant.API_KEY);
                 return true;
             case R.id.action_exit:
                 finish();
@@ -132,77 +190,6 @@ public class MainActivity extends AppCompatActivity
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
-
-    private void getWeatherInfoAsync(String latitude, String longitude)
-    {
-        class WeatherTask extends AsyncTask<String, Void, WeatherInfo>
-        {
-            @Override
-            protected void onPreExecute()
-            {
-                super.onPreExecute();
-
-                llProgressBar.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            protected WeatherInfo doInBackground(String... strings)
-            {
-                try
-                {
-                    return iWeatherRepository.getWeatherInfo(strings[0], strings[1]);
-                }
-                catch (IOException e)
-                {
-                    return null;
-                }
-            }
-
-            @Override
-            protected void onPostExecute(WeatherInfo weatherInfo)
-            {
-                llProgressBar.setVisibility(View.GONE);
-
-                if(weatherInfo != null)
-                {
-                    tv_no_data.setVisibility(View.GONE);
-                    rlView.setVisibility(View.VISIBLE);
-
-                    WeatherInfo formattedWeatherInfo = formatWeatherInfo(weatherInfo);
-
-                    tvName.setText(formattedWeatherInfo.getName());
-                    tvDescription.setText(formattedWeatherInfo.getDescription());
-                    tvTemperature.setText(formattedWeatherInfo.getTemperature());
-                    tvPressure.setText(formattedWeatherInfo.getPressure());
-                    tvHumidity.setText(formattedWeatherInfo.getHumidity());
-                    tvVisibility.setText(formattedWeatherInfo.getVisibility());
-                }
-                else
-                {
-                    tv_no_data.setVisibility(View.VISIBLE);
-                    rlView.setVisibility(View.INVISIBLE);
-                    showUserAlert(MainActivity.this, "Error!", "An error occurred while retrieving weather information. Please try again later");
-                }
-            }
-        }
-
-        WeatherTask task = new WeatherTask();
-        task.execute(latitude, longitude);
-    }
-
-    private WeatherInfo formatWeatherInfo(WeatherInfo weatherInfo)
-    {
-        String temperature = convertKelvinToCelsius(weatherInfo.getTemperature());
-        weatherInfo.setTemperature(temperature);
-
-        weatherInfo.setPressure(weatherInfo.getPressure() + " hPa");
-        weatherInfo.setHumidity(weatherInfo.getHumidity() + "%");
-
-        String visibility = String.valueOf(Float.valueOf(weatherInfo.getVisibility()) / 1000);
-        weatherInfo.setVisibility(visibility + " Km");
-
-        return weatherInfo;
     }
 
     private void requestLocationPermission()
@@ -299,13 +286,10 @@ public class MainActivity extends AppCompatActivity
 
                 if(count == 1) // first time -> display
                 {
-                    runOnUiThread(new Runnable()
+                    runOnUiThread(() ->
                     {
-                        @Override
-                        public void run()
-                        {
-                            getWeatherInfoAsync(latitude, longitude);
-                        }
+                        llProgressBar.setVisibility(View.VISIBLE);
+                        viewModel.getWeatherInfo(latitude, longitude, Constant.API_KEY);
                     });
                 }
 
@@ -314,14 +298,7 @@ public class MainActivity extends AppCompatActivity
             }
             else
             {
-                runOnUiThread(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        showUserAlert(MainActivity.this, "Location error!", "Error finding your location. Please try again later.");
-                    }
-                });
+                runOnUiThread(() -> showUserAlert(MainActivity.this, "Location error!", "Error finding your location. Please try again later."));
             }
         }
     }
