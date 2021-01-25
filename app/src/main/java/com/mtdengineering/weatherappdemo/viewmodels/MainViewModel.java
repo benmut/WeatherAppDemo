@@ -13,9 +13,9 @@ import javax.inject.Inject;
 
 import io.reactivex.schedulers.Schedulers;
 
-public class MainViewModel  extends ViewModel
+public class MainViewModel extends ViewModel
 {
-    IWeatherRepository iWeatherRepository;
+    private IWeatherRepository iWeatherRepository;
 
     @Inject
     public MainViewModel(IWeatherRepository iWeatherRepository)

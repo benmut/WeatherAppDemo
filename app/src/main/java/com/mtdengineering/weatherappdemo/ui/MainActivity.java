@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.Manifest;
@@ -11,7 +12,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -32,8 +32,6 @@ import com.mtdengineering.weatherappdemo.dagger.ViewModelProviderFactory;
 import com.mtdengineering.weatherappdemo.models.WeatherInfo;
 import com.mtdengineering.weatherappdemo.utils.Constant;
 import com.mtdengineering.weatherappdemo.viewmodels.MainViewModel;
-
-import java.io.IOException;
 
 import javax.inject.Inject;
 
@@ -69,29 +67,32 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        injectFields();
-        setViews();
-
-        lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+        bindViews();
+        injectDependencies();
+        initializeComponents();
+        subscribeObservers();
 
         if(needRuntimePermission())
         {
             requestLocationPermission();
         }
 
-        viewModel = new ViewModelProvider(this, viewModelProviderFactory).get(MainViewModel.class);
-        subscribeObservers();
-
         Log.d(TAG, "onCreate");
     }
 
-    private void injectFields()
+    private void injectDependencies()
     {
         AppComponent appComponent = ((WeatherApplication) getApplication()).appComponent;
         appComponent.injectActivity(this);
     }
 
-    private void setViews()
+    private void initializeComponents()
+    {
+        lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+        viewModel = new ViewModelProvider(this, viewModelProviderFactory).get(MainViewModel.class);
+    }
+
+    private void bindViews()
     {
         rlView = findViewById(R.id.rl_view);
         llProgressBar = findViewById(R.id.llProgressBar);
@@ -107,45 +108,8 @@ public class MainActivity extends AppCompatActivity
 
     private void subscribeObservers()
     {
-        viewModel.getWeatherInfo().observe(this, weatherInfo ->
-        {
-            llProgressBar.setVisibility(View.GONE);
-
-            if(weatherInfo != null)
-            {
-                tv_no_data.setVisibility(View.GONE);
-                rlView.setVisibility(View.VISIBLE);
-
-                tvName.setText(weatherInfo.getName());
-                tvDescription.setText(weatherInfo.getWeather().get(0).getDescription());
-
-                String temperature = convertKelvinToCelsius(String.valueOf(weatherInfo.getMain().getTemperature()));
-                tvTemperature.setText(temperature);
-
-                tvPressure.setText(weatherInfo.getMain().getPressure() + " hPa");
-                tvHumidity.setText(weatherInfo.getMain().getHumidity() + "%");
-
-                String visibility = String.valueOf(Float.valueOf(weatherInfo.getVisibility()) / 1000);
-                tvVisibility.setText(visibility + " Km");
-            }
-            else
-            {
-                tv_no_data.setVisibility(View.VISIBLE);
-                rlView.setVisibility(View.INVISIBLE);
-                showUserAlert(MainActivity.this, "Error!", "An error occurred while retrieving weather information. Please try again later");
-            }
-        });
-
-        viewModel.getError().observe(this, error ->
-        {
-            llProgressBar.setVisibility(View.GONE);
-
-            tv_no_data.setVisibility(View.VISIBLE);
-            rlView.setVisibility(View.INVISIBLE);
-
-            String errorMsg = error; // Not to be displayed to the User but used for debugging
-            showUserAlert(MainActivity.this, "Error!", "An error occurred while retrieving weather information. Please try again later");
-        });
+        viewModel.getWeatherInfo().observe(this, weatherInfoObserver);
+        viewModel.getError().observe(this, errorObserver);
     }
 
     @Override
@@ -266,6 +230,47 @@ public class MainActivity extends AppCompatActivity
             startService(intent);
         }
     }
+
+    Observer<WeatherInfo> weatherInfoObserver = weatherInfo ->
+    {
+        llProgressBar.setVisibility(View.GONE);
+
+        if(weatherInfo != null)
+        {
+            tv_no_data.setVisibility(View.GONE);
+            rlView.setVisibility(View.VISIBLE);
+
+            tvName.setText(weatherInfo.getName());
+            tvDescription.setText(weatherInfo.getWeather().get(0).getDescription());
+
+            String temperature = convertKelvinToCelsius(String.valueOf(weatherInfo.getMain().getTemperature()));
+            tvTemperature.setText(temperature);
+
+            tvPressure.setText(weatherInfo.getMain().getPressure() + " hPa");
+            tvHumidity.setText(weatherInfo.getMain().getHumidity() + "%");
+
+            String visibility = String.valueOf(Float.valueOf(weatherInfo.getVisibility()) / 1000);
+            tvVisibility.setText(visibility + " Km");
+        }
+        else
+        {
+            tv_no_data.setVisibility(View.VISIBLE);
+            rlView.setVisibility(View.INVISIBLE);
+            showUserAlert(MainActivity.this, "Error!", "An error occurred while retrieving weather information. Please try again later");
+        }
+    };
+
+    Observer<String> errorObserver = error ->
+    {
+        llProgressBar.setVisibility(View.GONE);
+
+        tv_no_data.setVisibility(View.VISIBLE);
+        rlView.setVisibility(View.INVISIBLE);
+
+        String errorMsg = error; // Not to be displayed to the User but used for debugging
+        showUserAlert(MainActivity.this, "Error!", "An error occurred while retrieving weather information. Please try again later");
+
+    };
 
     private class MyResultReceiver extends ResultReceiver
     {
