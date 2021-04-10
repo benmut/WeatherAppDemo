@@ -8,7 +8,7 @@ This is a simple demo App that displays the weather information based on the use
 - Dagger2
 - MVVM design pattern
 - LiveData & RxJava
-- ------
+- AAAAA
 
 # Tested with
 Emulator Pixel API 27
